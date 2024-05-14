@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Voting Website with Voice Recognition</title>
+<style>
+   *{
+    color: white;
+   }
+    body {
+        font-family: Arial, sans-serif;
+        text-align: center;
+        background: linear-gradient(to left,#00415D,#1D7EA8);
+        background-repeat: no-repeat;
+                    background-size: 100% 100%;
+                    background-attachment: fixed;
+    }
+    .beautiful-button {
+  position: relative;
+  display: inline-block;
+  background: linear-gradient(to bottom, #1b1c3f, #4a4e91);
+ /* Gradient background */
+  color: white;
+ /* White text color */
+  font-family: "Segoe UI", sans-serif;
+ /* Stylish and legible font */
+  font-weight: bold;
+  font-size: 18px;
+ /* Large font size */
+  border: none;
+ /* No border */
+  border-radius: 30px;
+ /* Rounded corners */
+  padding: 14px 28px;
+ /* Large padding */
+  cursor: pointer;
+ /* Cursor on hover */
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+ /* Subtle shadow */
+  animation: button-shimmer 2s infinite;
+  transition: all 0.3s ease-in-out;
+ /* Smooth transition */
+}
+
+/* Hover animation */
+.beautiful-button:hover {
+  background: linear-gradient(to bottom, #2c2f63, #5b67b7);
+  animation: button-particles 1s ease-in-out infinite;
+  transform: translateY(-2px);
+}
+
+/* Click animation */
+.beautiful-button:active {
+  transform: scale(0.95);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+}
+
+/* Shimmer animation */
+@keyframes button-shimmer {
+  0% {
+    background-position: left top;
+  }
+
+  100% {
+    background-position: right bottom;
+  }
+}
+
+/* Particle animation */
+@keyframes button-particles {
+  0% {
+    background-position: left top;
+  }
+
+  100% {
+    background-position: right bottom;
+  }
+}
+
+</style>
+</head>
+<body>
+    <img style="margin-left: -900px; width: 400px;" src="logo-removebg-preview.png">
+<h1 style="font-size:500%; margin-top: -50px;">تقييم مدى رضائك</h1>
+
+<button id="voteVeryGoodButton"  class="beautiful-button">جيد جدا
+</button>
+<button id="voteGoodButton"  class="beautiful-button"> جيد </button>
+<button id="voteAcceptableButton"   class="beautiful-button">مقبول </button>
+<div id="voteCountVeryGood"  style="font-size: 30px;">جيد جدا: 0</div>
+<div id="voteCountGood"  style="font-size: 30px;">جيد: 0</div>
+<div id="voteCountAcceptable"  style="font-size: 30px;">مقبول: 0</div>
+<button id="resetButton" class="beautiful-button">Reset Votes</button>
+<button id="sendEmailButton" class="beautiful-button">Send Votes via Email</button>
+
+<audio id="errorSound" src="Wrong buzzer sound effects.mp3" preload="auto"></audio>
+
+<script>
+    // JavaScript for handling voting functionality with voice recognition
+    const voteVeryGoodButton = document.getElementById('voteVeryGoodButton');
+    const voteGoodButton = document.getElementById('voteGoodButton');
+    const voteAcceptableButton = document.getElementById('voteAcceptableButton');
+    const voteCountVeryGood = document.getElementById('voteCountVeryGood');
+    const voteCountGood = document.getElementById('voteCountGood');
+    const voteCountAcceptable = document.getElementById('voteCountAcceptable');
+    const resetButton = document.getElementById('resetButton');
+    const sendEmailButton = document.getElementById('sendEmailButton');
+    const errorSound = document.getElementById('errorSound');
+    
+    // Initialize vote counts
+    let veryGoodCount = parseInt(localStorage.getItem('veryGoodCount')) || 0;
+    let goodCount = parseInt(localStorage.getItem('goodCount')) || 0;
+    let acceptableCount = parseInt(localStorage.getItem('acceptableCount')) || 0;
+    
+    // Display initial vote counts
+    voteCountVeryGood.textContent = `جيد جدا: ${veryGoodCount}`;
+    voteCountGood.textContent = `جيد: ${goodCount}`;
+    voteCountAcceptable.textContent = `مقبول: ${acceptableCount}`;
+    
+    // Event listener for the vote buttons
+    voteVeryGoodButton.addEventListener('click', function() {
+        voteWithVoice('جيد جدا');
+    });
+    
+    voteGoodButton.addEventListener('click', function() {
+        voteWithVoice('جيد');
+    });
+    
+    voteAcceptableButton.addEventListener('click', function() {
+        voteWithVoice('مقبول');
+    });
+
+    // Event listener for the reset button
+    resetButton.addEventListener('click', function() {
+        const password = prompt('Enter the reset password:');
+        if (password === 'ahmed') {
+            resetVotes();
+        } else {
+            // Play sound or show error message for incorrect password
+            alert('Incorrect password! Please try again.');
+            errorSound.play(); // Play the error sound
+        }
+    });
+
+    // Event listener for the send email button
+    sendEmailButton.addEventListener('click', function() {
+        sendEmail();
+    });
+
+    // Function to vote with voice
+    function voteWithVoice(option) {
+        if ('webkitSpeechRecognition' in window) {
+            const recognition = new webkitSpeechRecognition();
+            recognition.lang = 'ar';
+            
+            recognition.onstart = function() {
+                console.log('Speech recognition started...');
+            };
+            
+            recognition.onresult = function(event) {
+                const transcript = event.results[0][0].transcript.trim();
+                console.log('Speech recognized:', transcript);
+                if (transcript.includes(option)) {
+                    if (option === 'جيد جدا') {
+                        veryGoodCount++;
+                        updateVoteCount('جيد جدا');
+                    } else if (option === 'جيد') {
+                        goodCount++;
+                        updateVoteCount('جيد');
+                    } else if (option === 'مقبول') {
+                        acceptableCount++;
+                        updateVoteCount('مقبول');
+                    }
+                    saveVotesToLocalStorage();
+                } else {
+                    console.log('No valid voting command recognized.');
+                    errorSound.play(); // Play the error sound
+                }
+            };
+            
+            recognition.onerror = function(event) {
+                console.error('Speech recognition error:', event.error);
+                alert('Speech recognition error. Please try again.');
+                errorSound.play(); // Play the error sound
+            };
+            
+            recognition.start();
+        } else {
+            alert('Speech recognition is not supported in this browser.');
+            errorSound.play(); // Play the error sound
+        }
+    }
+
+    // Function to update the vote count display
+    function updateVoteCount(option) {
+        if (option === 'جيد جدا') {
+            voteCountVeryGood.textContent = `جيد جدا: ${veryGoodCount}`;
+        } else if (option === 'جيد') {
+            voteCountGood.textContent = `جيد: ${goodCount}`;
+        } else if (option === 'مقبول') {
+            voteCountAcceptable.textContent = `مقبول: ${acceptableCount}`;
+        }
+    }
+
+    // Function to save votes to local storage
+    function saveVotesToLocalStorage() {
+        localStorage.setItem('veryGoodCount', veryGoodCount);
+        localStorage.setItem('goodCount', goodCount);
+        localStorage.setItem('acceptableCount', acceptableCount);
+    }
+
+    // Function to reset votes
+    function resetVotes() {
+        veryGoodCount = 0;
+        goodCount = 0;
+        acceptableCount = 0;
+        saveVotesToLocalStorage();
+        voteCountVeryGood.textContent = `جيد جدا: ${veryGoodCount}`;
+        voteCountGood.textContent = `جيد: ${goodCount}`;
+        voteCountAcceptable.textContent = `مقبول: ${acceptableCount}`;
+        alert('تمت العمليه بنجاح بنسبة 100%👌👌👌');
+    }
+
+    // Function to send email
+    function sendEmail() {
+        const gmail = 'm.ebrahim.careers@gmail.com';
+        const subject = 'Voting Results';
+        const body = `جيد جدا: ${veryGoodCount}\nجيد: ${goodCount}\nمقبول: ${acceptableCount}`;
+        window.location.href = `mailto:${gmail}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    }
+    
+</script>
+</body>
+</html>
